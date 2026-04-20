@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+package order;
+
+// Shared messages
+
+message OrderRequest {
+    string order_id = 1;
+    string car_model = 2;
+    int32 quantity = 3;
+    double price = 4;
+    string customer_id = 5;
+}
+
+message OrderResponse {
+    string order_id = 1;
+    string status = 2;
+    string message = 3;
+}
+
+
+// --- Service definitions for gRPC ---
+
+// Warehouse
+service WarehouseService {
+    rpc CheckStock (OrderRequest) returns (OrderResponse);
+}
+
+// Payment
+service PaymentService {
+    rpc ProcessPayment (OrderRequest) returns (OrderResponse);
+}
+
+// Delivery
+service DeliveryService {
+    rpc ScheduleDelivery (OrderRequest) returns (OrderResponse);
+}
+
+// Shop
+service ShopService {
+    rpc CreateOrder (OrderRequest) returns (OrderResponse);
+}
