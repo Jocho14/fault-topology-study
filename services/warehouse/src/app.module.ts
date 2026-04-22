@@ -10,7 +10,9 @@ import { join } from 'path';
   imports: [
     TypeOrmModule.forRoot({
       type: 'postgres',
-      url: 'postgresql://postgres:postgres@localhost:5432/warehouse_db',
+      url:
+        process.env.DATABASE_URL ||
+        'postgresql://postgres:postgres@localhost:5432/warehouse_db',
       entities: [StockCheck],
       synchronize: true,
     }),
@@ -23,6 +25,7 @@ import { join } from 'path';
           package: 'order',
           protoPath: join(__dirname, '../../../proto/order.proto'),
           url: process.env.PAYMENT_GRPC || 'localhost:50053',
+          loader: { keepCase: true },
         },
       },
       {

@@ -10,13 +10,9 @@ import { join } from 'path';
   imports: [
     TypeOrmModule.forRoot({
       type: 'postgres',
-      host:
-        process.env.DB_HOST ||
+      url:
+        process.env.DATABASE_URL ||
         'postgresql://postgres:postgres@localhost:5432/shop_db',
-      port: 5432,
-      username: 'postgres',
-      password: 'postgres',
-      database: 'shop_db',
       entities: [Order],
       synchronize: true,
     }),
@@ -26,7 +22,7 @@ import { join } from 'path';
         name: 'WAREHOUSE_PACKAGE',
         transport: Transport.GRPC,
         options: {
-          url: process.env.WAREHOUSE_URL || 'localhost:5001',
+          url: process.env.WAREHOUSE_GRPC || 'localhost:5001',
           package: 'order',
           protoPath: join(__dirname, '../../../proto/order.proto'),
           loader: { keepCase: true },

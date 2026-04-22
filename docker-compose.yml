@@ -1,0 +1,129 @@
+services:
+  # --- Infra ---
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # --- Services ---
+  shop:
+    build:
+      context: .
+      dockerfile: services/shop/Dockerfile
+    ports:
+      - "3001:3001"
+      - "50051:50051"
+    environment:
+      PORT: 3001
+      GRPC_PORT: 50051
+      TOPOLOGY: ${TOPOLOGY:-sync-chain}
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/shop_db
+      WAREHOUSE_GRPC: warehouse:50052
+      RABBITMQ_URL: amqp://rabbitmq:5672
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  warehouse:
+    build:
+      context: .
+      dockerfile: services/warehouse/Dockerfile
+    ports:
+      - "3002:3002"
+      - "50052:50052"
+    environment:
+      PORT: 3002
+      GRPC_PORT: 50052
+      TOPOLOGY: ${TOPOLOGY:-sync-chain}
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/warehouse_db
+      PAYMENT_GRPC: payment:50053
+      RABBITMQ_URL: amqp://rabbitmq:5672
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  payment:
+    build:
+      context: .
+      dockerfile: services/payment/Dockerfile
+    ports:
+      - "3003:3003"
+      - "50053:50053"
+    environment:
+      PORT: 3003
+      GRPC_PORT: 50053
+      TOPOLOGY: ${TOPOLOGY:-sync-chain}
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/payment_db
+      DELIVERY_GRPC: delivery:50054
+      RABBITMQ_URL: amqp://rabbitmq:5672
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  delivery:
+    build:
+      context: .
+      dockerfile: services/delivery/Dockerfile
+    ports:
+      - "3004:3004"
+      - "50054:50054"
+    environment:
+      PORT: 3004
+      GRPC_PORT: 50054
+      TOPOLOGY: ${TOPOLOGY:-sync-chain}
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/delivery_db
+      RABBITMQ_URL: amqp://rabbitmq:5672
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  orchestrator:
+    build:
+      context: .
+      dockerfile: services/orchestrator/Dockerfile
+    ports:
+      - "3005:3005"
+    environment:
+      PORT: 3005
+      SHOP_GRPC: shop:50051
+      WAREHOUSE_GRPC: warehouse:50052
+      PAYMENT_GRPC: payment:50053
+      DELIVERY_GRPC: delivery:50054
+    depends_on:
+      - shop
+      - warehouse
+      - payment
+      - delivery
+
+volumes:
+  pgdata:

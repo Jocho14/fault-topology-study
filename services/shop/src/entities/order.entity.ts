@@ -6,7 +6,7 @@ export class Order {
   id: string;
 
   @Column()
-  carModel: string;
+  car_model: string;
 
   @Column()
   quantity: number;
@@ -15,7 +15,7 @@ export class Order {
   price: number;
 
   @Column()
-  customerId: string;
+  customer_id: string;
 
   @Column()
   status: string;
