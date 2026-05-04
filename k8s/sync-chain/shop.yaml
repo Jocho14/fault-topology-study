@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shop
+  labels:
+    app: shop
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: shop
+  template:
+    metadata:
+      labels:
+        app: shop
+    spec:
+      containers:
+        - name: shop
+          image: shop-service:latest
+          # imagePullPolicy: Never tells K8s to use the local image
+          # (the one we built inside Minikube) instead of trying to
+          # pull from Docker Hub or another registry.
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 3001 # HTTP
+            - containerPort: 50051 # gRPC
+          env:
+            - name: PORT
+              value: "3001"
+            - name: GRPC_PORT
+              value: "50051"
+            - name: TOPOLOGY
+              value: sync-chain
+            - name: DATABASE_URL
+              value: postgresql://postgres:postgres@postgres:5432/shop_db
+            - name: WAREHOUSE_GRPC
+              value: warehouse:50052
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: shop
+spec:
+  selector:
+    app: shop
+  ports:
+    - name: http
+      port: 3001
+      targetPort: 3001
+    - name: grpc
+      port: 50051
+      targetPort: 50051

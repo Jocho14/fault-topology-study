@@ -8,7 +8,7 @@ import { firstValueFrom, Observable } from 'rxjs';
 import { Topology } from './enums/topology.enum';
 import { OrderStatus } from './enums/order-status.enum';
 
-interface OrderData {
+export interface OrderData {
   order_id: string;
   car_model: string;
   quantity: number;
@@ -16,7 +16,7 @@ interface OrderData {
   customer_id: string;
 }
 
-interface OrderResponse {
+export interface OrderResponse {
   order_id: string;
   status: string;
   message: string;
@@ -47,7 +47,7 @@ export class AppService implements OnModuleInit {
     quantity: number;
     price: number;
     customer_id: string;
-  }): Promise<void> {
+  }): Promise<OrderResponse> {
     const orderId = uuidv4();
     const orderData = { order_id: orderId, ...dto };
 
@@ -58,7 +58,7 @@ export class AppService implements OnModuleInit {
     });
 
     await this.orderRepository.save(order);
-    await this.processOrder(
+    return this.processOrder(
       orderData,
       (process.env.TOPOLOGY as Topology) || Topology.SyncChain,
     );
