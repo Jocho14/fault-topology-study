@@ -33,7 +33,7 @@ import { join } from 'path';
         transport: Transport.RMQ,
         options: {
           urls: [process.env.RABBITMQ_URL || 'amqp://localhost:5672'],
-          queue: 'orders',
+          queue: 'order_events_queue',
           queueOptions: { durable: true },
         },
       },

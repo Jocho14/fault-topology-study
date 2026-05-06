@@ -52,7 +52,7 @@ export class AppService implements OnModuleInit {
       case Topology.SynchOrchestrator:
         return {
           order_id: data.order_id,
-          status: 'paymentCompleted',
+          status: 'payment_completed',
           message: `Payment of ${data.price * data.quantity} processed`,
         };
 

@@ -29,6 +29,6 @@ export class AppController {
 
   @GrpcMethod('ShopService', 'CreateOrder')
   async grpcCreateOrder(data: { order_id: string } & CreateOrderDto) {
-    await this.appService.storeOrder(data);
+    return this.appService.storeOrder(data);
   }
 }

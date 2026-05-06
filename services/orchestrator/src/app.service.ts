@@ -3,7 +3,7 @@ import { ClientGrpc } from '@nestjs/microservices';
 import { firstValueFrom, Observable } from 'rxjs';
 import { v4 as uuidv4 } from 'uuid';
 
-interface OrderData {
+export interface OrderData {
   order_id: string;
   car_model: string;
   quantity: number;
@@ -11,7 +11,7 @@ interface OrderData {
   customer_id: string;
 }
 
-interface OrderResponse {
+export interface OrderResponse {
   order_id: string;
   status: string;
   message: string;
@@ -47,11 +47,11 @@ export class AppService implements OnModuleInit {
     this.shopService =
       this.shopClient.getService<ShopGrpcService>('ShopService');
     this.warehouseService =
-      this.shopClient.getService<WarehouseGrpcService>('WarehouseService');
+      this.warehouseClient.getService<WarehouseGrpcService>('WarehouseService');
     this.paymentService =
-      this.shopClient.getService<PaymentGrpcService>('PaymentService');
+      this.paymentClient.getService<PaymentGrpcService>('PaymentService');
     this.deliveryService =
-      this.shopClient.getService<DeliveryGrpcService>('DeliveryService');
+      this.deliveryClient.getService<DeliveryGrpcService>('DeliveryService');
   }
 
   async createOrder(dto: {
@@ -59,7 +59,7 @@ export class AppService implements OnModuleInit {
     quantity: number;
     price: number;
     customer_id: string;
-  }) {
+  }): Promise<OrderResponse> {
     const orderId = uuidv4();
     const orderData: OrderData = { order_id: orderId, ...dto };
 
