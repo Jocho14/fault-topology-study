@@ -5,6 +5,7 @@ import { Payment } from './entities/payment.entity';
 import { Repository } from 'typeorm';
 import { ClientGrpc, ClientProxy } from '@nestjs/microservices';
 import { Topology } from './topology.enum';
+import { injectTrace, acceptTrace } from './nr-trace';
 
 interface OrderData {
   order_id: string;
@@ -62,10 +63,11 @@ export class AppService implements OnModuleInit {
   }
 
   async handleStockConfirmed(data: OrderData) {
+    acceptTrace(data);
     console.log(`[Payment] Received stock_confirmed: ${data.order_id}`);
     await this.recordPayment(data.order_id, data.price, data.quantity);
 
-    this.rabbitClient.emit('payment_completed', data);
+    this.rabbitClient.emit('payment_completed', injectTrace(data));
   }
 
   private async recordPayment(

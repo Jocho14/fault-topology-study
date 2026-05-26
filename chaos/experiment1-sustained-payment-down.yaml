@@ -1,0 +1,28 @@
+# Experiment 1 — SUSTAINED outage variant.
+#
+# Unlike experiment1-keep-payment-down.yaml (a Schedule that pod-kills payment
+# every 10s, from which it recovers in ~2s so RabbitMQ never accumulates much),
+# this keeps payment continuously UNAVAILABLE so the async backlog actually
+# builds up — making the buffer-and-drain behaviour visible.
+#
+# action: pod-failure replaces the container with a pause image (pod goes
+# not-ready but is not deleted/restarted). With no `duration`, it persists
+# until this resource is deleted — which is exactly when run-exp1.sh removes
+# chaos and starts timing recovery / queue drain.
+#
+# Run with:
+#   CHAOS_FILE=chaos/experiment1-sustained-payment-down.yaml \
+#     metrics/run-exp1.sh async-event
+apiVersion: chaos-mesh.org/v1alpha1
+kind: PodChaos
+metadata:
+  name: sustained-payment-down
+  namespace: default
+spec:
+  action: pod-failure
+  mode: all
+  selector:
+    namespaces:
+      - default
+    labelSelectors:
+      app: payment

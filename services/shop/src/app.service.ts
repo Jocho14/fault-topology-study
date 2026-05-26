@@ -7,6 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { firstValueFrom, Observable } from 'rxjs';
 import { Topology } from './enums/topology.enum';
 import { OrderStatus } from './enums/order-status.enum';
+import { injectTrace } from './nr-trace';
 
 export interface OrderData {
   order_id: string;
@@ -93,7 +94,7 @@ export class AppService implements OnModuleInit {
         };
       }
       case Topology.AsyncEvent: {
-        this.rabbitClient.emit('order_created', orderData);
+        this.rabbitClient.emit('order_created', injectTrace(orderData));
         await this.orderRepository.update(orderData.order_id, {
           status: OrderStatus.Accepted,
         });

@@ -5,6 +5,7 @@ import { StockCheck } from './entities/stock-check.entity';
 import { Repository } from 'typeorm';
 import { Topology } from './topology.enum';
 import { ClientGrpc, ClientProxy } from '@nestjs/microservices';
+import { injectTrace, acceptTrace } from './nr-trace';
 
 interface OrderData {
   order_id: string;
@@ -62,10 +63,11 @@ export class AppService implements OnModuleInit {
   }
 
   async handleOrderCreated(data: OrderData) {
+    acceptTrace(data);
     console.log(`[Warehouse] Received order_created: ${data.order_id}`);
     await this.recordStockCheck(data.order_id);
 
-    this.rabbitClient.emit('stock_confirmed', data);
+    this.rabbitClient.emit('stock_confirmed', injectTrace(data));
   }
 
   private async recordStockCheck(orderId: string): Promise<void> {

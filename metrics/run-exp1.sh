@@ -17,7 +17,10 @@ BASELINE="${BASELINE:-60}"
 CHAOS="${CHAOS:-120}"
 RECOVERY="${RECOVERY:-90}"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-CHAOS_FILE="$ROOT/chaos/experiment1-keep-payment-down.yaml"
+# Default = flapping pod-kill schedule; override with the sustained-outage
+# variant via:  CHAOS_FILE=chaos/experiment1-sustained-payment-down.yaml
+CHAOS_FILE="${CHAOS_FILE:-$ROOT/chaos/experiment1-keep-payment-down.yaml}"
+[ -f "$CHAOS_FILE" ] || CHAOS_FILE="$ROOT/$CHAOS_FILE"
 TL="$ROOT/results/exp1-${TOPO}-timeline.json"
 mkdir -p "$ROOT/results"
 

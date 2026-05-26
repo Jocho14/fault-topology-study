@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Delivery } from './entities/delivery.entity';
 import { Repository } from 'typeorm';
+import { acceptTrace } from './nr-trace';
 
 interface OrderData {
   order_id: string;
@@ -35,6 +36,7 @@ export class AppService {
   }
 
   async handlePaymentCompletedEvent(data: OrderData) {
+    acceptTrace(data);
     console.log(`[Delivery] Received payment_completed: ${data.order_id}`);
     await this.recordDelivery(data.order_id);
 
