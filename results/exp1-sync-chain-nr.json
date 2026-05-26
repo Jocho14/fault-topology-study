@@ -1,0 +1,79 @@
+{
+  "experiment": "exp1-kill-payment",
+  "topology": "sync-chain",
+  "capturedAt": "2026-05-26T08:21:20.113Z",
+  "timeline": {
+    "topology": "sync-chain",
+    "baseline": {
+      "start": 1779782442314,
+      "end": 1779782487349
+    },
+    "chaos": {
+      "start": 1779782487349,
+      "end": 1779782577579
+    },
+    "recovery": {
+      "paymentReadyAt": 1779782577776,
+      "end": 1779782652815
+    },
+    "rabbit": []
+  },
+  "metrics": {
+    "networkOverhead": {
+      "designCallsPerTransaction": 3,
+      "measuredAvgCallsPerTransaction": 2.88,
+      "measurementBasis": "External gRPC spans per trace",
+      "unit": "network calls per business transaction"
+    },
+    "successRateUnderStress": {
+      "successPct": 76.21951219512195,
+      "requests": 1804
+    },
+    "propagationLatency": {
+      "faultOnsetAt": 1779782490675,
+      "chaosAppliedAt": 1779782487349,
+      "firstUserVisibleErrorAt": 1779782494192,
+      "latencyMs": 3517,
+      "resolutionMs": 2105,
+      "note": null
+    },
+    "recoveryTimeMTTR": {
+      "paymentReadyAt": 1779782577776,
+      "successRecoveredAt": 1779782582000,
+      "httpMttrMs": 4224,
+      "queueDrainedAt": null,
+      "queueDrainMs": null,
+      "note": null
+    },
+    "failurePropagationRate": {
+      "thresholdPct": 5,
+      "affectedServices": [
+        "shop-sync-chain",
+        "warehouse-sync-chain"
+      ],
+      "ratePct": 50,
+      "perService": [
+        {
+          "service": "shop-sync-chain",
+          "errorPct": 23.78048780487805,
+          "requests": 1804
+        },
+        {
+          "service": "warehouse-sync-chain",
+          "errorPct": 23.78048780487805,
+          "requests": 1804
+        },
+        {
+          "service": "payment-sync-chain",
+          "errorPct": 0,
+          "requests": 1089
+        },
+        {
+          "service": "delivery-sync-chain",
+          "errorPct": 0,
+          "requests": 1378
+        }
+      ]
+    }
+  }
+}

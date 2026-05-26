@@ -29,6 +29,7 @@
     "@nestjs/typeorm": "^11.0.1",
     "amqp-connection-manager": "^5.0.0",
     "amqplib": "^1.0.3",
+    "newrelic": "^14.0.0",
     "pg": "^8.20.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",

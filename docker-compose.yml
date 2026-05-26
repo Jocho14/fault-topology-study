@@ -1,3 +1,12 @@
+# Shared New Relic env, merged into each service below via `<<: *newrelic-env`.
+# NEW_RELIC_LICENSE_KEY is read from a gitignored .env file (see .env.example).
+# Config is env-only, so NEW_RELIC_NO_CONFIG_FILE=true (no newrelic.js shipped in the image).
+x-newrelic-env: &newrelic-env
+  NEW_RELIC_LICENSE_KEY: ${NEW_RELIC_LICENSE_KEY:-}
+  NEW_RELIC_DISTRIBUTED_TRACING_ENABLED: "true"
+  NEW_RELIC_NO_CONFIG_FILE: "true"
+  NEW_RELIC_LOG_LEVEL: info
+
 services:
   # --- Infra ---
   postgres:
@@ -36,6 +45,8 @@ services:
       - "3001:3001"
       - "50051:50051"
     environment:
+      <<: *newrelic-env
+      NEW_RELIC_APP_NAME: shop-${TOPOLOGY:-sync-chain}
       PORT: 3001
       GRPC_PORT: 50051
       TOPOLOGY: ${TOPOLOGY:-sync-chain}
@@ -56,6 +67,8 @@ services:
       - "3002:3002"
       - "50052:50052"
     environment:
+      <<: *newrelic-env
+      NEW_RELIC_APP_NAME: warehouse-${TOPOLOGY:-sync-chain}
       PORT: 3002
       GRPC_PORT: 50052
       TOPOLOGY: ${TOPOLOGY:-sync-chain}
@@ -76,6 +89,8 @@ services:
       - "3003:3003"
       - "50053:50053"
     environment:
+      <<: *newrelic-env
+      NEW_RELIC_APP_NAME: payment-${TOPOLOGY:-sync-chain}
       PORT: 3003
       GRPC_PORT: 50053
       TOPOLOGY: ${TOPOLOGY:-sync-chain}
@@ -96,6 +111,8 @@ services:
       - "3004:3004"
       - "50054:50054"
     environment:
+      <<: *newrelic-env
+      NEW_RELIC_APP_NAME: delivery-${TOPOLOGY:-sync-chain}
       PORT: 3004
       GRPC_PORT: 50054
       TOPOLOGY: ${TOPOLOGY:-sync-chain}
@@ -114,6 +131,8 @@ services:
     ports:
       - "3005:3005"
     environment:
+      <<: *newrelic-env
+      NEW_RELIC_APP_NAME: orchestrator-${TOPOLOGY:-sync-chain}
       PORT: 3005
       SHOP_GRPC: shop:50051
       WAREHOUSE_GRPC: warehouse:50052

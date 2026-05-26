@@ -1,11 +1,11 @@
-FROM node:20-alpine AS build
+FROM node:22-alpine AS build
 WORKDIR /app/services/delivery
 COPY services/delivery/package*.json ./
 RUN npm ci
 COPY services/delivery/ .
 RUN npm run build
 
-FROM node:20-alpine
+FROM node:22-alpine
 WORKDIR /app/services/delivery
 COPY services/delivery/package*.json ./
 RUN npm ci --omit=dev

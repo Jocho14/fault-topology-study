@@ -1,0 +1,18 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: Schedule
+metadata:
+  name: keep-payment-down
+  namespace: default
+spec:
+  schedule: "*/10 * * * * *" # every 10 seconds (cron with seconds)
+  type: PodChaos
+  historyLimit: 1
+  concurrencyPolicy: Allow
+  podChaos:
+    action: pod-kill
+    mode: all
+    selector:
+      namespaces:
+        - default
+      labelSelectors:
+        app: payment

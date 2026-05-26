@@ -1,3 +1,4 @@
+import 'newrelic'; // MUST stay first: loads the APM agent before any instrumented module
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';

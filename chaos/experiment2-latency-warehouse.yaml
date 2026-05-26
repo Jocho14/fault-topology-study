@@ -1,0 +1,19 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: latency-warehouse
+  namespace: default
+spec:
+  action: delay
+  mode: all
+  selector:
+    namespaces:
+      - default
+    labelSelectors:
+      app: warehouse
+  delay:
+    latency: "2s" # add 2 seconds to every network packet
+    correlation: "100" # apply to 100% of packets (no randomness)
+    jitter: "0ms" # no variation — exactly 2s every time
+  # Duration the chaos lasts. After this, latency is removed automatically.
+  duration: "3m"

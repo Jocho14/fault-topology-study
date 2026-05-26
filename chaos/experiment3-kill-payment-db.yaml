@@ -1,0 +1,13 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: PodChaos
+metadata:
+  name: kill-postgres
+  namespace: default
+spec:
+  action: pod-kill
+  mode: all
+  selector:
+    namespaces:
+      - default
+    labelSelectors:
+      app: postgres

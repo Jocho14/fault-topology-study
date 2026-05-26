@@ -1,0 +1,16 @@
+{
+  "topology": "sync-chain",
+  "baseline": {
+    "start": 1779782442314,
+    "end": 1779782487349
+  },
+  "chaos": {
+    "start": 1779782487349,
+    "end": 1779782577579
+  },
+  "recovery": {
+    "paymentReadyAt": 1779782577776,
+    "end": 1779782652815
+  },
+  "rabbit": []
+}

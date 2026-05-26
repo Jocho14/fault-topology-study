@@ -21,6 +21,17 @@ spec:
           ports:
             - containerPort: 3005
           env:
+            - name: NEW_RELIC_LICENSE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: newrelic
+                  key: license-key
+            - name: NEW_RELIC_APP_NAME
+              value: orchestrator-sync-orchestrator
+            - name: NEW_RELIC_DISTRIBUTED_TRACING_ENABLED
+              value: "true"
+            - name: NEW_RELIC_NO_CONFIG_FILE
+              value: "true"
             - name: PORT
               value: "3005"
             - name: SHOP_GRPC
