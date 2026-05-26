@@ -79,9 +79,12 @@ m.networkOverhead = {
   unit: "network calls per business transaction",
 };
 
-// --- #2 Success Rate under Stress (entry service, chaos window) ---
+// --- #2 Success Rate under Stress (entry service, ACTIVE-fault window) ---
+// Measure from faultOnset (when payment actually went down) to chaos removal,
+// not from chaos-apply: pod-failure has an injection lag, and counting the
+// pre-fault period would inflate the success rate.
 const s2 = await one(
-  `FROM Transaction SELECT percentage(count(*), WHERE error IS false) AS successPct, count(*) AS n WHERE appName = 'shop-${TOPO}' ${win(tl.chaos.start, tl.chaos.end)}`,
+  `FROM Transaction SELECT percentage(count(*), WHERE error IS false) AS successPct, count(*) AS n WHERE appName = 'shop-${TOPO}' ${win(faultOnsetAt, tl.chaos.end)}`,
 );
 m.successRateUnderStress = { successPct: s2[0]?.successPct ?? null, requests: s2[0]?.n ?? 0 };
 
@@ -143,7 +146,7 @@ m.recoveryTimeMTTR = {
 
 // --- #5 Failure Propagation Rate (services that erred during chaos) ---
 const s5 = await one(
-  `FROM Transaction SELECT percentage(count(*), WHERE error IS true) AS errorPct, count(*) AS n FACET appName WHERE appName LIKE '%-${TOPO}' ${win(tl.chaos.start, tl.chaos.end)}`,
+  `FROM Transaction SELECT percentage(count(*), WHERE error IS true) AS errorPct, count(*) AS n FACET appName WHERE appName LIKE '%-${TOPO}' ${win(faultOnsetAt, tl.chaos.end)}`,
 );
 const THRESH = 5;
 const perService = SERVICES.map((svc) => {

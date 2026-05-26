@@ -1,46 +1,46 @@
 {
   "experiment": "exp1-kill-payment",
   "topology": "sync-chain",
-  "capturedAt": "2026-05-26T08:21:20.113Z",
+  "capturedAt": "2026-05-26T09:55:50.061Z",
   "timeline": {
     "topology": "sync-chain",
     "baseline": {
-      "start": 1779782442314,
-      "end": 1779782487349
+      "start": 1779789071036,
+      "end": 1779789116083
     },
     "chaos": {
-      "start": 1779782487349,
-      "end": 1779782577579
+      "start": 1779789116083,
+      "end": 1779789206215
     },
     "recovery": {
-      "paymentReadyAt": 1779782577776,
-      "end": 1779782652815
+      "paymentReadyAt": 1779789208487,
+      "end": 1779789328523
     },
     "rabbit": []
   },
   "metrics": {
     "networkOverhead": {
       "designCallsPerTransaction": 3,
-      "measuredAvgCallsPerTransaction": 2.88,
+      "measuredAvgCallsPerTransaction": 3,
       "measurementBasis": "External gRPC spans per trace",
       "unit": "network calls per business transaction"
     },
     "successRateUnderStress": {
-      "successPct": 76.21951219512195,
-      "requests": 1804
+      "successPct": 0,
+      "requests": 1161
     },
     "propagationLatency": {
-      "faultOnsetAt": 1779782490675,
-      "chaosAppliedAt": 1779782487349,
-      "firstUserVisibleErrorAt": 1779782494192,
-      "latencyMs": 3517,
-      "resolutionMs": 2105,
-      "note": null
+      "faultOnsetAt": 1779789148132,
+      "chaosAppliedAt": 1779789116083,
+      "firstUserVisibleErrorAt": 1779789148926,
+      "latencyMs": 794,
+      "resolutionMs": 1085,
+      "note": "at/under poll resolution (~1085ms) — propagation effectively immediate"
     },
     "recoveryTimeMTTR": {
-      "paymentReadyAt": 1779782577776,
-      "successRecoveredAt": 1779782582000,
-      "httpMttrMs": 4224,
+      "paymentReadyAt": 1779789208487,
+      "successRecoveredAt": 1779789233000,
+      "httpMttrMs": 24513,
       "queueDrainedAt": null,
       "queueDrainMs": null,
       "note": null
@@ -55,23 +55,23 @@
       "perService": [
         {
           "service": "shop-sync-chain",
-          "errorPct": 23.78048780487805,
-          "requests": 1804
+          "errorPct": 100,
+          "requests": 1161
         },
         {
           "service": "warehouse-sync-chain",
-          "errorPct": 23.78048780487805,
-          "requests": 1804
+          "errorPct": 100,
+          "requests": 1161
         },
         {
           "service": "payment-sync-chain",
           "errorPct": 0,
-          "requests": 1089
+          "requests": 0
         },
         {
           "service": "delivery-sync-chain",
           "errorPct": 0,
-          "requests": 1378
+          "requests": 0
         }
       ]
     }
