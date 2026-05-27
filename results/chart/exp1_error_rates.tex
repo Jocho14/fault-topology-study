@@ -1,0 +1,56 @@
+% Experiment 1 — per-service error rates (two panels), reproduced from the
+% New Relic data in exp1_sync_error_rates.csv / exp1_async_error_rates.csv.
+%
+% Keep this .tex and the two CSV files in the SAME directory when compiling
+% (they live in results/chart/). Compile with pdflatex.
+\documentclass[border=4pt]{standalone}   % or \documentclass{article}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepgfplotslibrary{groupplots}
+
+\definecolor{cshop}{HTML}{1F77B4}      % blue
+\definecolor{cwarehouse}{HTML}{FF7F0E} % orange
+\definecolor{cpayment}{HTML}{2CA02C}   % green
+\definecolor{cdelivery}{HTML}{D62728}  % red
+
+\begin{document}
+\begin{tikzpicture}
+\begin{groupplot}[
+    group style={group size=1 by 2, vertical sep=2.2cm},
+    width=13cm, height=5.2cm,
+    xmin=0, xmax=257, ymin=-5, ymax=105,
+    ytick={0,20,40,60,80,100},
+    ylabel={HTTP error rate (\%)},
+    enlarge x limits=false,
+    unbounded coords=jump,            % break a line where the value is nan
+    grid=major, grid style={gray!20},
+    legend cell align=left,
+    legend style={at={(0.99,0.5)}, anchor=east, font=\small, draw=gray!50},
+    title style={at={(0,1)}, anchor=south west, font=\bfseries},
+  ]
+
+  % ---- Panel (a): synchronous chain ----
+  \nextgroupplot[title={(a) Synchronous chain}]
+    % shaded chaos band (45..135 s); forget plot = no legend entry
+    \addplot[fill=gray!15, draw=none, forget plot]
+        coordinates {(45,-5) (135,-5) (135,105) (45,105)} \closedcycle;
+    \addplot[cshop,      solid,        line width=1pt] table[x=t_seconds, y=shop,      col sep=comma] {exp1_sync_error_rates.csv};
+    \addplot[cwarehouse, dashed,       line width=1pt] table[x=t_seconds, y=warehouse, col sep=comma] {exp1_sync_error_rates.csv};
+    \addplot[cpayment,   dotted,       line width=1.2pt] table[x=t_seconds, y=payment,   col sep=comma] {exp1_sync_error_rates.csv};
+    \addplot[cdelivery,  dash dot,     line width=1pt] table[x=t_seconds, y=delivery,  col sep=comma] {exp1_sync_error_rates.csv};
+    \legend{shop, warehouse, payment, delivery}
+    \node[gray, font=\small] at (axis cs:90,50) {chaos};
+
+  % ---- Panel (b): asynchronous event-driven ----
+  \nextgroupplot[title={(b) Asynchronous event-driven}, xlabel={Time since start of run (s)}]
+    \addplot[fill=gray!15, draw=none, forget plot]
+        coordinates {(45,-5) (135,-5) (135,105) (45,105)} \closedcycle;
+    \addplot[cshop,      solid,    line width=1pt] table[x=t_seconds, y=shop,      col sep=comma] {exp1_async_error_rates.csv};
+    \addplot[cwarehouse, dashed,   line width=1pt] table[x=t_seconds, y=warehouse, col sep=comma] {exp1_async_error_rates.csv};
+    \addplot[cpayment,   dotted,   line width=1.2pt] table[x=t_seconds, y=payment,   col sep=comma] {exp1_async_error_rates.csv};
+    \addplot[cdelivery,  dash dot, line width=1pt] table[x=t_seconds, y=delivery,  col sep=comma] {exp1_async_error_rates.csv};
+    \legend{shop, warehouse, payment, delivery}
+
+\end{groupplot}
+\end{tikzpicture}
+\end{document}
