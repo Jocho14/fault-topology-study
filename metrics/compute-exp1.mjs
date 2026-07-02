@@ -1,9 +1,11 @@
 #!/usr/bin/env node
-// Compute the 5 thesis metrics for Experiment 1 from a timeline.json
-// (produced by run-exp1.sh) + NRQL queries against New Relic.
+// Compute the thesis metrics from a timeline.json (produced by run-exp1.sh)
+// + NRQL queries against New Relic. Generalized across experiments via the
+// fields the runner writes into the timeline (experiment, topology,
+// killService, entryApp).
 //
 // Usage: node metrics/compute-exp1.mjs <timeline.json>
-// Writes results/exp1-<topology>-nr.json and prints a summary table.
+// Writes results/<experiment>-<topology>-nr.json and prints a summary.
 import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -16,22 +18,27 @@ if (!tlPath) {
   process.exit(2);
 }
 const tl = JSON.parse(readFileSync(tlPath, "utf8"));
-const TOPO = tl.topology; // sync-chain | async-event
+const TOPO = tl.topology;
+const LABEL = tl.experiment || "exp1";
+const KILL = tl.killService || "payment";
+const ENTRY = tl.entryApp || `shop-${TOPO}`;
+const win = (a, b) => `SINCE ${a} UNTIL ${b}`;
+const one = async (q) => (await runNrql(q)).results;
 
-// Fault onset = first poller sample (after chaos apply) where payment is NOT
-// ready, i.e. the moment payment actually went down (vs chaos-apply time, which
-// the cron schedule delays). Resolution is bounded by the poll interval.
+// Fault onset = first poller sample (after chaos apply) where the kill target
+// is NOT ready, i.e. when it actually went down (vs chaos-apply time, which the
+// pod-failure injection lag delays). Resolution is bounded by the poll interval.
 function deriveFaultOnset() {
-  const pollPath = join(root, "results", `exp1-${TOPO}-poll.jsonl`);
+  const pollPath = join(root, "results", `${LABEL}-${TOPO}-poll.jsonl`);
   let rows;
   try {
     rows = readFileSync(pollPath, "utf8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l));
   } catch {
     return { faultOnsetAt: tl.chaos.start, pollIntervalMs: null };
   }
+  const ready = (r) => String(r.targetReady ?? r.paymentReady ?? "");
   const after = rows.filter((r) => r.t >= tl.chaos.start);
-  const down = after.find((r) => !String(r.paymentReady ?? "").includes("true"));
-  // estimate poll interval from median gap, for the resolution note
+  const down = after.find((r) => !ready(r).includes("true"));
   const gaps = [];
   for (let i = 1; i < rows.length; i++) gaps.push(rows[i].t - rows[i - 1].t);
   gaps.sort((a, b) => a - b);
@@ -41,26 +48,25 @@ function deriveFaultOnset() {
   };
 }
 const { faultOnsetAt, pollIntervalMs } = deriveFaultOnset();
-const SERVICES = ["shop", "warehouse", "payment", "delivery"].map((s) => `${s}-${TOPO}`);
-const win = (a, b) => `SINCE ${a} UNTIL ${b}`;
-const one = async (q) => (await runNrql(q)).results;
+
+// Dynamic service list for this topology (includes orchestrator when present).
+const svcRows = await one(
+  `FROM Transaction SELECT count(*) FACET appName WHERE appName LIKE '%-${TOPO}' ${win(tl.baseline.start, tl.recovery.end)} LIMIT 20`,
+).catch(() => []);
+const SERVICES = svcRows.map((r) => r.appName).filter(Boolean);
+if (!SERVICES.length) SERVICES.push(...["shop", "warehouse", "payment", "delivery"].map((s) => `${s}-${TOPO}`));
 
 const m = {}; // metric outputs
 
 // --- #1 Network Overhead (design count + measured gRPC hops per trace) ---
 const designCalls = { "sync-chain": 3, "sync-orchestrator": 4, "async-event": 4 };
-// Measured calls per business transaction over the clean baseline window.
-// sync-chain: gRPC hops = External spans, linked per trace.
-// async-event: RabbitMQ trace context does NOT propagate, so per-trace linkage
-//   is unavailable; we proxy as downstream message transactions per order
-//   (each consumed event = one network-delivered message step).
 let measured = null;
 if (TOPO === "async-event") {
   const msg = await one(
-    `FROM Transaction SELECT count(*) AS steps WHERE appName LIKE '%-async-event' AND appName != 'shop-async-event' ${win(tl.baseline.start, tl.baseline.end)}`,
+    `FROM Transaction SELECT count(*) AS steps WHERE appName LIKE '%-async-event' AND appName != '${ENTRY}' ${win(tl.baseline.start, tl.baseline.end)}`,
   ).catch(() => [{}]);
   const orders = await one(
-    `FROM Transaction SELECT count(*) AS n WHERE appName = 'shop-async-event' ${win(tl.baseline.start, tl.baseline.end)}`,
+    `FROM Transaction SELECT count(*) AS n WHERE appName = '${ENTRY}' ${win(tl.baseline.start, tl.baseline.end)}`,
   ).catch(() => [{}]);
   const steps = msg[0]?.steps ?? 0;
   const n = orders[0]?.n ?? 0;
@@ -79,18 +85,38 @@ m.networkOverhead = {
   unit: "network calls per business transaction",
 };
 
+// --- Latency Overhead (baseline end-to-end latency at the entry service) ---
+// The cost of the topology under NORMAL conditions: chain nests 3 gRPC hops;
+// orchestrator does client->orchestrator + 4 sequential gRPC calls.
+// Report the MEDIAN as the headline (avg is skewed by the chain's heavy tail);
+// keep avg/p95 to show the tail behaviour.
+const r1 = (x) => (x != null ? Math.round(x * 10) / 10 : null);
+const latMed = await one(
+  `FROM Transaction SELECT percentile(duration, 50)*1000 AS p50Ms WHERE appName = '${ENTRY}' AND error IS false ${win(tl.baseline.start, tl.baseline.end)}`,
+).catch(() => [{}]);
+const latAvg = await one(
+  `FROM Transaction SELECT average(duration)*1000 AS avgMs, count(*) AS n WHERE appName = '${ENTRY}' AND error IS false ${win(tl.baseline.start, tl.baseline.end)}`,
+).catch(() => [{}]);
+const latP95 = await one(
+  `FROM Transaction SELECT percentile(duration, 95)*1000 AS p95Ms WHERE appName = '${ENTRY}' AND error IS false ${win(tl.baseline.start, tl.baseline.end)}`,
+).catch(() => [{}]);
+m.latencyOverhead = {
+  entryService: ENTRY,
+  baselineMedianMs: r1(latMed[0]?.p50Ms),
+  baselineAvgMs: r1(latAvg[0]?.avgMs),
+  baselineP95Ms: r1(latP95[0]?.p95Ms),
+  requests: latAvg[0]?.n ?? 0,
+};
+
 // --- #2 Success Rate under Stress (entry service, ACTIVE-fault window) ---
-// Measure from faultOnset (when payment actually went down) to chaos removal,
-// not from chaos-apply: pod-failure has an injection lag, and counting the
-// pre-fault period would inflate the success rate.
 const s2 = await one(
-  `FROM Transaction SELECT percentage(count(*), WHERE error IS false) AS successPct, count(*) AS n WHERE appName = 'shop-${TOPO}' ${win(faultOnsetAt, tl.chaos.end)}`,
+  `FROM Transaction SELECT percentage(count(*), WHERE error IS false) AS successPct, count(*) AS n WHERE appName = '${ENTRY}' ${win(faultOnsetAt, tl.chaos.end)}`,
 );
 m.successRateUnderStress = { successPct: s2[0]?.successPct ?? null, requests: s2[0]?.n ?? 0 };
 
 // --- #3 Propagation Latency (fault onset -> first user-visible error) ---
 const s3 = await one(
-  `FROM TransactionError SELECT earliest(timestamp) AS firstError, count(*) AS n WHERE appName = 'shop-${TOPO}' ${win(faultOnsetAt, tl.chaos.end)}`,
+  `FROM TransactionError SELECT earliest(timestamp) AS firstError, count(*) AS n WHERE appName = '${ENTRY}' ${win(faultOnsetAt, tl.chaos.end)}`,
 );
 const firstErr = s3[0]?.firstError ?? null;
 const latencyMs = firstErr ? firstErr - faultOnsetAt : null;
@@ -108,10 +134,10 @@ m.propagationLatency = {
         : null,
 };
 
-// --- #4 Recovery Time / MTTR (payment ready -> success back to 100%) ---
+// --- #4 Recovery Time / MTTR (kill target ready -> success back to 100%) ---
 const TR = tl.recovery.paymentReadyAt;
 const ts = await one(
-  `FROM Transaction SELECT percentage(count(*), WHERE error IS false) AS successPct, count(*) AS n WHERE appName = 'shop-${TOPO}' TIMESERIES 5 seconds ${win(TR, tl.recovery.end)}`,
+  `FROM Transaction SELECT percentage(count(*), WHERE error IS false) AS successPct, count(*) AS n WHERE appName = '${ENTRY}' TIMESERIES 5 seconds ${win(TR, tl.recovery.end)}`,
 );
 let recoveredAt = null;
 for (const b of ts) {
@@ -120,18 +146,15 @@ for (const b of ts) {
     break;
   }
 }
-// async: also the RabbitMQ backlog drain time (queue depth -> 0 after TR)
 let queueDrainedAt = null;
 if (Array.isArray(tl.rabbit)) {
   const after = tl.rabbit.filter((r) => r.t >= TR);
   const z = after.find((r) => r.messages === 0);
   queueDrainedAt = z ? z.t : null;
 }
-// If success never degraded during chaos, there is no HTTP-level recovery to
-// time (the negative/zero "recovery bucket" is an artifact) -> report 0 + note.
 const noHttpImpact = m.successRateUnderStress.successPct === 100;
 m.recoveryTimeMTTR = {
-  paymentReadyAt: TR,
+  killTargetReadyAt: TR,
   successRecoveredAt: noHttpImpact ? null : recoveredAt,
   httpMttrMs: noHttpImpact ? 0 : recoveredAt ? recoveredAt - TR : null,
   queueDrainedAt,
@@ -144,7 +167,7 @@ m.recoveryTimeMTTR = {
       : null,
 };
 
-// --- #5 Failure Propagation Rate (services that erred during chaos) ---
+// --- #5 Failure Propagation Rate (services that erred during the fault) ---
 const s5 = await one(
   `FROM Transaction SELECT percentage(count(*), WHERE error IS true) AS errorPct, count(*) AS n FACET appName WHERE appName LIKE '%-${TOPO}' ${win(faultOnsetAt, tl.chaos.end)}`,
 );
@@ -156,25 +179,29 @@ const perService = SERVICES.map((svc) => {
 const affected = perService.filter((p) => p.errorPct > THRESH);
 m.failurePropagationRate = {
   thresholdPct: THRESH,
+  killService: KILL,
   affectedServices: affected.map((p) => p.service),
   ratePct: Math.round((affected.length / SERVICES.length) * 1000) / 10,
   perService,
 };
 
 const out = {
-  experiment: "exp1-kill-payment",
+  experiment: `${LABEL}-kill-${KILL}`,
   topology: TOPO,
   capturedAt: new Date().toISOString(),
   timeline: tl,
   metrics: m,
 };
-const outPath = join(root, "results", `exp1-${TOPO}-nr.json`);
+const outPath = join(root, "results", `${LABEL}-${TOPO}-nr.json`);
 writeFileSync(outPath, JSON.stringify(out, null, 2));
 
-console.log(`\n=== Exp 1 metrics — ${TOPO} ===`);
+console.log(`\n=== ${LABEL} metrics — ${TOPO} (kill ${KILL}, entry ${ENTRY}) ===`);
 console.log(`1 Network Overhead       : ${m.networkOverhead.designCallsPerTransaction} calls (design), ~${m.networkOverhead.measuredAvgCallsPerTransaction} measured`);
+console.log(`  Latency overhead       : median ${m.latencyOverhead.baselineMedianMs} ms (avg ${m.latencyOverhead.baselineAvgMs}, p95 ${m.latencyOverhead.baselineP95Ms}) baseline`);
 console.log(`2 Success under Stress   : ${m.successRateUnderStress.successPct}%  (n=${m.successRateUnderStress.requests})`);
 console.log(`3 Propagation Latency    : ${m.propagationLatency.latencyMs} ms`);
 console.log(`4 Recovery (MTTR)        : http ${m.recoveryTimeMTTR.httpMttrMs} ms` + (queueDrainedAt !== null || TOPO === "async-event" ? `, queue ${m.recoveryTimeMTTR.queueDrainMs} ms` : ""));
 console.log(`5 Failure Propagation    : ${m.failurePropagationRate.ratePct}%  [${m.failurePropagationRate.affectedServices.join(", ") || "none"}]`);
+console.log(`  per-service error %:`);
+for (const p of m.failurePropagationRate.perService) console.log(`    ${p.service.padEnd(28)} ${p.errorPct}%  (n=${p.requests})`);
 console.log(`\nwrote ${outPath}`);

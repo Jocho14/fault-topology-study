@@ -65,9 +65,36 @@ export class AppService implements OnModuleInit {
   async handleStockConfirmed(data: OrderData) {
     acceptTrace(data);
     console.log(`[Payment] Received stock_confirmed: ${data.order_id}`);
-    await this.recordPayment(data.order_id, data.price, data.quantity);
-
+    // Retry the DB write with backoff so transient outages (Exp 3 partition)
+    // don't drop work. The message stays in-flight (unacked) on the consumer
+    // while we retry — RabbitMQ keeps it safe and won't redeliver it.
+    await this.recordPaymentWithRetry(data);
     this.rabbitClient.emit('payment_completed', injectTrace(data));
+  }
+
+  private async recordPaymentWithRetry(data: OrderData): Promise<void> {
+    const maxAttempts = 90; // ~3 min, well above the 60s partition
+    let lastErr: any;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        await this.recordPayment(data.order_id, data.price, data.quantity);
+        if (attempt > 1) {
+          console.log(
+            `[Payment] DB recovered on attempt ${attempt} for ${data.order_id}`,
+          );
+        }
+        return;
+      } catch (err: any) {
+        lastErr = err;
+        if (attempt === 1 || attempt % 10 === 0) {
+          console.warn(
+            `[Payment] DB attempt ${attempt}/${maxAttempts} failed for ${data.order_id}: ${err?.message ?? err}`,
+          );
+        }
+        await new Promise((r) => setTimeout(r, 2000));
+      }
+    }
+    throw lastErr;
   }
 
   private async recordPayment(

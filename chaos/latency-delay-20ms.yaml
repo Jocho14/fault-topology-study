@@ -1,0 +1,20 @@
+# Same as latency-delay-services.yaml but 20ms per-hop (instead of 80ms),
+# to see the topology latency gap at a smaller per-hop RTT.
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: interservice-delay-20ms
+  namespace: default
+spec:
+  action: delay
+  mode: all
+  selector:
+    namespaces:
+      - default
+    expressionSelectors:
+      - { key: app, operator: In, values: [shop, warehouse, payment, delivery, orchestrator] }
+  delay:
+    latency: "20ms"
+    jitter: "0ms"
+    correlation: "0"
+  direction: to

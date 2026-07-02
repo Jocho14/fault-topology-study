@@ -1,0 +1,19 @@
+{
+  "experiment": "exp2",
+  "topology": "sync-chain",
+  "killService": "warehouse",
+  "entryApp": "shop-sync-chain",
+  "baseline": {
+    "start": 1780000898892,
+    "end": 1780000943935
+  },
+  "chaos": {
+    "start": 1780000943935,
+    "end": 1780001034094
+  },
+  "recovery": {
+    "paymentReadyAt": 1780001036382,
+    "end": 1780001232539
+  },
+  "rabbit": []
+}

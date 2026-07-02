@@ -1,0 +1,17 @@
+# Experiment 2b — sustained outage of DELIVERY (last hop).
+# Killing the last service maximises propagation in the chain (3 services
+# cascade: shop+warehouse+payment all error) while still hitting only the
+# coordinator in sync-orchestrator, giving the sharpest isolation contrast.
+apiVersion: chaos-mesh.org/v1alpha1
+kind: PodChaos
+metadata:
+  name: sustained-delivery-down
+  namespace: default
+spec:
+  action: pod-failure
+  mode: all
+  selector:
+    namespaces:
+      - default
+    labelSelectors:
+      app: delivery

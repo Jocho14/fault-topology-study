@@ -1,0 +1,11 @@
+{
+  "experiment": "exp3-partition-payment-db",
+  "topology": "async-event",
+  "dir": "exp3-async-event-20260609-005921",
+  "submitted": 5100,
+  "http_requests": 5100,
+  "http_failed_pct": 0,
+  "payments_written": 5100,
+  "deliveries_written": 5100,
+  "workPreservationRate": 1
+}

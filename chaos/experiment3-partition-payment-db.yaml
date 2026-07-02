@@ -1,0 +1,29 @@
+# Experiment 3 — temporary failure of payment's stateful dependency.
+# NetworkChaos partition that blocks payment from reaching the postgres pod
+# (payment cannot read/write payment_db) without affecting any other service.
+# No `duration` field: the orchestration script applies and removes this.
+#
+# direction: to + target=postgres -> blocks traffic FROM the payment pods
+# going TO the postgres pod. All other traffic (RabbitMQ, gRPC, other DBs)
+# is unaffected.
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: payment-db-partition
+  namespace: default
+spec:
+  action: partition
+  mode: all
+  selector:
+    namespaces:
+      - default
+    labelSelectors:
+      app: payment
+  direction: to
+  target:
+    mode: all
+    selector:
+      namespaces:
+        - default
+      labelSelectors:
+        app: postgres

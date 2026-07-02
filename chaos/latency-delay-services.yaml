@@ -1,0 +1,27 @@
+# Inject a realistic per-hop network delay on every service pod, to expose the
+# latency cost of inter-service communication that Minikube's sub-ms intra-node
+# network hides. Under this delay the orchestrator's central-hub round-trips
+# (orch->service->orch x4) accumulate more than the chain's forward pipeline.
+#
+# direction: to -> delays packets arriving at each selected pod. On the critical
+# path the chain takes 7 such hops (client->shop->wh->pay->del and back up),
+# while the orchestrator takes 9 (every call round-trips back through the hub),
+# so orchestrator end-to-end latency ~= chain + 2*latency.
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: interservice-delay
+  namespace: default
+spec:
+  action: delay
+  mode: all
+  selector:
+    namespaces:
+      - default
+    expressionSelectors:
+      - { key: app, operator: In, values: [shop, warehouse, payment, delivery, orchestrator] }
+  delay:
+    latency: "80ms"
+    jitter: "0ms"
+    correlation: "0"
+  direction: to

@@ -15,6 +15,15 @@ import { join } from 'path';
         'postgresql://postgres:postgres@localhost:5432/payment_db',
       entities: [Payment],
       synchronize: true,
+      // Fast-fail DB queries when the DB is unreachable (Exp 3 partition).
+      // Without these, pg waits on TCP retransmits for ~15 min and the handler
+      // hangs silently — sync requests stall instead of erroring, and the
+      // async consumer never reaches its nack/requeue path.
+      extra: {
+        query_timeout: 5000,
+        statement_timeout: 5000,
+        connectionTimeoutMillis: 5000,
+      },
     }),
     TypeOrmModule.forFeature([Payment]),
 

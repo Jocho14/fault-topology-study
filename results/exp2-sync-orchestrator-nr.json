@@ -1,0 +1,94 @@
+{
+  "experiment": "exp2-kill-warehouse",
+  "topology": "sync-orchestrator",
+  "capturedAt": "2026-05-28T21:01:04.738Z",
+  "timeline": {
+    "experiment": "exp2",
+    "topology": "sync-orchestrator",
+    "killService": "warehouse",
+    "entryApp": "orchestrator-sync-orchestrator",
+    "baseline": {
+      "start": 1780001543323,
+      "end": 1780001588365
+    },
+    "chaos": {
+      "start": 1780001588365,
+      "end": 1780001678522
+    },
+    "recovery": {
+      "paymentReadyAt": 1780001680833,
+      "end": 1780001800885
+    },
+    "rabbit": []
+  },
+  "metrics": {
+    "networkOverhead": {
+      "designCallsPerTransaction": 4,
+      "measuredAvgCallsPerTransaction": 4,
+      "measurementBasis": "External gRPC spans per trace",
+      "unit": "network calls per business transaction"
+    },
+    "latencyOverhead": {
+      "entryService": "orchestrator-sync-orchestrator",
+      "baselineMedianMs": 13.7,
+      "baselineAvgMs": 16.4,
+      "baselineP95Ms": 28.2,
+      "requests": 900
+    },
+    "successRateUnderStress": {
+      "successPct": 0,
+      "requests": 1173
+    },
+    "propagationLatency": {
+      "faultOnsetAt": 1780001619867,
+      "chaosAppliedAt": 1780001588365,
+      "firstUserVisibleErrorAt": 1780001620269,
+      "latencyMs": 402,
+      "resolutionMs": 1090,
+      "note": "at/under poll resolution (~1090ms) — propagation effectively immediate"
+    },
+    "recoveryTimeMTTR": {
+      "killTargetReadyAt": 1780001680833,
+      "successRecoveredAt": 1780001705000,
+      "httpMttrMs": 24167,
+      "queueDrainedAt": null,
+      "queueDrainMs": null,
+      "note": null
+    },
+    "failurePropagationRate": {
+      "thresholdPct": 5,
+      "killService": "warehouse",
+      "affectedServices": [
+        "orchestrator-sync-orchestrator"
+      ],
+      "ratePct": 20,
+      "perService": [
+        {
+          "service": "shop-sync-orchestrator",
+          "errorPct": 0,
+          "requests": 1173
+        },
+        {
+          "service": "orchestrator-sync-orchestrator",
+          "errorPct": 100,
+          "requests": 1173
+        },
+        {
+          "service": "delivery-sync-orchestrator",
+          "errorPct": 0,
+          "requests": 0
+        },
+        {
+          "service": "payment-sync-orchestrator",
+          "errorPct": 0,
+          "requests": 0
+        },
+        {
+          "service": "warehouse-sync-orchestrator",
+          "errorPct": 0,
+          "requests": 0
+        }
+      ]
+    }
+  }
+}

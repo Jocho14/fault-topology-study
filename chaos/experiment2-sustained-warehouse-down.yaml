@@ -1,0 +1,25 @@
+# Experiment 2 — sustained outage of the WAREHOUSE service.
+#
+# Same mechanism as experiment1-sustained-payment-down.yaml (pod-failure with
+# no duration -> warehouse stays unavailable until this resource is deleted),
+# but targets warehouse instead of payment. Used to compare failure isolation
+# and latency overhead between sync-chain and sync-orchestrator.
+#
+# Run with:
+#   CHAOS_FILE=chaos/experiment2-sustained-warehouse-down.yaml KILL=warehouse \
+#   LABEL=exp2 ENTRY_DEPLOY=shop        ENTRY_PORT=3001 metrics/run-exp1.sh sync-chain
+#   CHAOS_FILE=chaos/experiment2-sustained-warehouse-down.yaml KILL=warehouse \
+#   LABEL=exp2 ENTRY_DEPLOY=orchestrator ENTRY_PORT=3005 metrics/run-exp1.sh sync-orchestrator
+apiVersion: chaos-mesh.org/v1alpha1
+kind: PodChaos
+metadata:
+  name: sustained-warehouse-down
+  namespace: default
+spec:
+  action: pod-failure
+  mode: all
+  selector:
+    namespaces:
+      - default
+    labelSelectors:
+      app: warehouse

@@ -77,3 +77,66 @@ FACET appName WHERE appName LIKE '%-{TOPO}' SINCE {CHAOS_START} UNTIL {CHAOS_END
 `failure_propagation_rate = (#services with error% > 5) / (total services)`.
 Expected: sync-chain cascades (payment + warehouse + shop error) → high;
 async-event contains it (only payment processing pauses) → low.
+
+---
+
+# Exp 3 metrics → NRQL — partition payment ↔ postgres
+
+Experiment 3 = temporary failure of payment's stateful dependency: a
+NetworkChaos partition blocks payment's pod from reaching the postgres pod
+for 60 s, applied 45 s into a 255 s constant-arrival-rate run. Compares
+`sync-chain` vs `async-event`.
+
+Conventions: `{TOPO}` = `sync-chain` or `async-event`. App names are
+`<service>-{TOPO}`. Entry service is **shop** in both topologies (in async,
+shop fire-and-forgets onto RabbitMQ; in chain it makes the blocking call to
+warehouse). Windows: `{T0}` = `chaosStart`, `{TE}` = `chaosEnd`,
+`{K6START}`/`{K6END}` from each run's `meta.json`.
+
+## A. Per-service error rate during the partition window
+Shows how the fault propagates. In sync-chain, payment errors cascade up to
+warehouse and shop; in async-event, payment errors are absorbed by the
+broker's redelivery (shop/warehouse stay clean — they already published).
+
+```sql
+FROM Transaction SELECT percentage(count(*), WHERE error IS true) AS errorPct,
+                        count(*) AS n
+FACET appName WHERE appName LIKE '%-{TOPO}' SINCE {T0} UNTIL {TE}
+```
+
+## B. Per-service error rate as a timeseries (for charts)
+Mirrors the per-service chart in Exp 1/2b. Window = the full run (`{K6START}` to
+`{K6END} + 30000` ms for the post-drain).
+
+```sql
+FROM Transaction SELECT percentage(count(*), WHERE error IS true) AS error_rate
+FACET appName WHERE appName LIKE '%-{TOPO}' TIMESERIES 1 second
+SINCE {K6START} UNTIL {K6END}
+```
+
+## C. payment errors (the fault signature)
+Confirms payment is the one failing during the partition window (DB writes
+throwing). Should be ~100% errors during chaos in both topologies; in async
+the messages get nack-requeued so eventually they all succeed (after the
+partition ends), whereas in sync they're lost forever (the caller already
+gave up).
+
+```sql
+FROM Transaction SELECT percentage(count(*), WHERE error IS true) AS errorPct,
+                        count(*) AS n
+WHERE appName = 'payment-{TOPO}' SINCE {T0} UNTIL {TE}
+```
+
+## D. RabbitMQ backlog (async only)
+NR does not capture queue depth — get it from the run's `poll.jsonl` if you
+add a queue-depth poller to run-exp3.sh, or directly via
+`kubectl exec <rabbitmq-pod> -- rabbitmqctl list_queues messages` during the
+run. Expect `stock_events_queue` (the one feeding payment) to grow during the
+partition and drain to zero shortly after the partition ends.
+
+## E. The headline (WPR) — NOT NRQL
+The primary metric for Exp 3 is the Work Preservation Rate, computed by
+`metrics/compute-exp3.mjs` from k6's `iterations.count` and the
+post-run row count of `delivery_db.deliveries`. NRQL queries A–C are
+supporting evidence: they explain *how* the WPR difference arose
+(propagation cascade in chain vs broker-buffered recovery in async).

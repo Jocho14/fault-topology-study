@@ -1,0 +1,94 @@
+{
+  "experiment": "exp2b-kill-delivery",
+  "topology": "sync-orchestrator",
+  "capturedAt": "2026-05-30T14:34:48.385Z",
+  "timeline": {
+    "experiment": "exp2b",
+    "topology": "sync-orchestrator",
+    "killService": "delivery",
+    "entryApp": "orchestrator-sync-orchestrator",
+    "baseline": {
+      "start": 1780151409028,
+      "end": 1780151454059
+    },
+    "chaos": {
+      "start": 1780151454059,
+      "end": 1780151544208
+    },
+    "recovery": {
+      "paymentReadyAt": 1780151546507,
+      "end": 1780151666561
+    },
+    "rabbit": []
+  },
+  "metrics": {
+    "networkOverhead": {
+      "designCallsPerTransaction": 4,
+      "measuredAvgCallsPerTransaction": 4,
+      "measurementBasis": "External gRPC spans per trace",
+      "unit": "network calls per business transaction"
+    },
+    "latencyOverhead": {
+      "entryService": "orchestrator-sync-orchestrator",
+      "baselineMedianMs": 14.3,
+      "baselineAvgMs": 45.4,
+      "baselineP95Ms": 158.2,
+      "requests": 900
+    },
+    "successRateUnderStress": {
+      "successPct": 0,
+      "requests": 1174
+    },
+    "propagationLatency": {
+      "faultOnsetAt": 1780151485533,
+      "chaosAppliedAt": 1780151454059,
+      "firstUserVisibleErrorAt": 1780151485555,
+      "latencyMs": 22,
+      "resolutionMs": 1087,
+      "note": "at/under poll resolution (~1087ms) — propagation effectively immediate"
+    },
+    "recoveryTimeMTTR": {
+      "killTargetReadyAt": 1780151546507,
+      "successRecoveredAt": 1780151566000,
+      "httpMttrMs": 19493,
+      "queueDrainedAt": null,
+      "queueDrainMs": null,
+      "note": null
+    },
+    "failurePropagationRate": {
+      "thresholdPct": 5,
+      "killService": "delivery",
+      "affectedServices": [
+        "orchestrator-sync-orchestrator"
+      ],
+      "ratePct": 20,
+      "perService": [
+        {
+          "service": "warehouse-sync-orchestrator",
+          "errorPct": 0,
+          "requests": 1174
+        },
+        {
+          "service": "shop-sync-orchestrator",
+          "errorPct": 0,
+          "requests": 1174
+        },
+        {
+          "service": "orchestrator-sync-orchestrator",
+          "errorPct": 100,
+          "requests": 1174
+        },
+        {
+          "service": "payment-sync-orchestrator",
+          "errorPct": 0,
+          "requests": 1173
+        },
+        {
+          "service": "delivery-sync-orchestrator",
+          "errorPct": 0,
+          "requests": 0
+        }
+      ]
+    }
+  }
+}

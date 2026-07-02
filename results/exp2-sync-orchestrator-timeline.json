@@ -1,0 +1,19 @@
+{
+  "experiment": "exp2",
+  "topology": "sync-orchestrator",
+  "killService": "warehouse",
+  "entryApp": "orchestrator-sync-orchestrator",
+  "baseline": {
+    "start": 1780001543323,
+    "end": 1780001588365
+  },
+  "chaos": {
+    "start": 1780001588365,
+    "end": 1780001678522
+  },
+  "recovery": {
+    "paymentReadyAt": 1780001680833,
+    "end": 1780001800885
+  },
+  "rabbit": []
+}

@@ -2,8 +2,6 @@ syntax = "proto3";
 
 package order;
 
-// Shared messages
-
 message OrderRequest {
     string order_id = 1;
     string car_model = 2;
@@ -18,25 +16,18 @@ message OrderResponse {
     string message = 3;
 }
 
-
-// --- Service definitions for gRPC ---
-
-// Warehouse
 service WarehouseService {
     rpc CheckStock (OrderRequest) returns (OrderResponse);
 }
 
-// Payment
 service PaymentService {
     rpc ProcessPayment (OrderRequest) returns (OrderResponse);
 }
 
-// Delivery
 service DeliveryService {
     rpc ScheduleDelivery (OrderRequest) returns (OrderResponse);
 }
 
-// Shop
 service ShopService {
     rpc CreateOrder (OrderRequest) returns (OrderResponse);
 }

@@ -1,0 +1,11 @@
+{
+  "experiment": "exp3-partition-payment-db",
+  "topology": "sync-chain",
+  "dir": "exp3-sync-chain-20260609-000720",
+  "submitted": 4976,
+  "http_requests": 4976,
+  "http_failed_pct": 20.08,
+  "payments_written": 3977,
+  "deliveries_written": 3977,
+  "workPreservationRate": 0.7992363344051447
+}

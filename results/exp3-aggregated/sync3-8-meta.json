@@ -1,0 +1,26 @@
+{
+  "experiment": "exp3-partition-payment-db",
+  "topology": "sync-chain",
+  "timestamp_iso": "2026-06-08T22:07:20Z",
+  "phases_ms": {
+    "k6Start": 1780956154583,
+    "chaosStart": 1780956199690,
+    "chaosEnd": 1780956259976,
+    "k6End": 1780956409891,
+    "harvest": 1780956439986
+  },
+  "settings": {
+    "rate_rps": 20,
+    "baseline_s": 45,
+    "chaos_s": 60,
+    "recovery_s": 120,
+    "drain_s": 30,
+    "postwait_s": 30
+  },
+  "db_counts": {
+    "deliveries": 3980,
+    "payments": 3980,
+    "stocks": 4999,
+    "orders": 4999
+  }
+}
